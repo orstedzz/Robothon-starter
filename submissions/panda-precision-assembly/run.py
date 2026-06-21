@@ -15,12 +15,14 @@ except ImportError as exc:
     raise SystemExit(f"Missing dependency: {exc}") from exc
 
 from panda_assembly import config
-from panda_assembly.controller import PandaAssemblyController, PEG_WPS, HOME
+from panda_assembly.controller import PandaAssemblyController
 
 
-def render_demo(model, ctrl, output_path, fps=30, duration=15.0):
+def render_demo(model, ctrl, output_path, fps=30):
+    """Render all 4 peg tasks to demo video."""
     output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
+    total_frames = 600  # fixed budget
 
     renderer = mujoco.Renderer(model, 720, 1280)
     cam = mujoco.MjvCamera()
@@ -30,63 +32,67 @@ def render_demo(model, ctrl, output_path, fps=30, duration=15.0):
     cam.elevation = -25
     cam.lookat = [0.45, 0.0, 0.15]
 
-    total_frames = int(duration * fps)
-    print(f"Recording {total_frames} frames → {output_path} ...")
-
     writer = imageio.get_writer(str(output_path), fps=fps, codec="libx264", quality=10)
 
-    def cf():
+    def snap():
         renderer.update_scene(ctrl.data, camera=cam)
         writer.append_data(renderer.render())
 
     frame_idx = 0
-    ctrl.home(100)
+    ctrl.home(80)
 
     for peg in config.PEGS:
         name = peg["name"]
-        wp = PEG_WPS[name]
         print(f"  {name.upper()} peg")
 
-        # Approach
-        ctrl.smooth_move(wp["approach"], 200)
-        for _ in range(15):
-            mujoco.mj_step(model, ctrl.data); cf(); frame_idx += 1
+        # Approach via IK
+        peg_pos = ctrl.get_peg_pos(name)
+        if peg_pos is None:
+            continue
+        target = peg_pos + [0, 0, 0.10]
+        ctrl.ik_to(target, 200)
+        for _ in range(10):
+            mujoco.mj_step(model, ctrl.data)
+            snap(); frame_idx += 1
 
         # Grasp
         ctrl.data.ctrl[7] = 60
-        for _ in range(20):
-            mujoco.mj_step(model, ctrl.data); cf(); frame_idx += 1
+        for _ in range(15):
+            mujoco.mj_step(model, ctrl.data)
+            snap(); frame_idx += 1
 
         # Lift
-        ctrl.smooth_move(wp["lift"], 200)
-        for _ in range(15):
-            mujoco.mj_step(model, ctrl.data); cf(); frame_idx += 1
-
-        # Transport
-        ctrl.smooth_move(wp["hole_above"], 250)
-        for _ in range(15):
-            mujoco.mj_step(model, ctrl.data); cf(); frame_idx += 1
-
-        # Insert (lower gradually then release)
-        current = list(wp["hole_above"])
-        for dz in np.linspace(0, -0.08, 60):
-            current[2] = wp["hole_above"][2] + dz
-            for j in range(8):
-                ctrl.data.ctrl[j] = current[j]
+        lift_t = peg_pos + [0, 0, 0.25]
+        ctrl.ik_to(lift_t, 200)
+        for _ in range(10):
             mujoco.mj_step(model, ctrl.data)
-            if frame_idx % 3 == 0:
-                cf()
-            frame_idx += 1
+            snap(); frame_idx += 1
+
+        # Transport above hole
+        hole = np.array(peg["hole_pos"]) + [0, 0, 0.12]
+        ctrl.ik_to(hole, 250)
+        for _ in range(10):
+            mujoco.mj_step(model, ctrl.data)
+            snap(); frame_idx += 1
+
+        # Insert (lower into hole)
+        for dz in np.linspace(0.12, -0.02, 50):
+            t = np.array(peg["hole_pos"]) + [0, 0, dz]
+            ctrl.ik_to(t, 40)
+            if frame_idx % 2 == 0:
+                snap(); frame_idx += 1
 
         # Release
         ctrl.data.ctrl[7] = 200
-        for _ in range(15):
-            mujoco.mj_step(model, ctrl.data); cf(); frame_idx += 1
+        for _ in range(10):
+            mujoco.mj_step(model, ctrl.data)
+            snap(); frame_idx += 1
 
         # Home
-        ctrl.smooth_move(HOME, 150)
-        for _ in range(10):
-            mujoco.mj_step(model, ctrl.data); cf(); frame_idx += 1
+        ctrl.home(100)
+        for _ in range(8):
+            mujoco.mj_step(model, ctrl.data)
+            snap(); frame_idx += 1
 
         pct = frame_idx / total_frames * 100
         sys.stdout.write(f"\r  {pct:.0f}%")
