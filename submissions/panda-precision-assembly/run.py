@@ -15,10 +15,10 @@ except ImportError as exc:
     raise SystemExit(f"Missing dependency: {exc}") from exc
 
 from panda_assembly import config
-from panda_assembly.controller import PandaAssemblyController, PEG_WPS
+from panda_assembly.controller import PandaAssemblyController, PEG_WPS, HOME
 
 
-def render_demo(model, ctrl, output_path, fps=30, duration=12.0):
+def render_demo(model, ctrl, output_path, fps=30, duration=15.0):
     output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -34,6 +34,11 @@ def render_demo(model, ctrl, output_path, fps=30, duration=12.0):
     print(f"Recording {total_frames} frames → {output_path} ...")
 
     writer = imageio.get_writer(str(output_path), fps=fps, codec="libx264", quality=10)
+
+    def cf():
+        renderer.update_scene(ctrl.data, camera=cam)
+        writer.append_data(renderer.render())
+
     frame_idx = 0
     ctrl.home(100)
 
@@ -42,54 +47,46 @@ def render_demo(model, ctrl, output_path, fps=30, duration=12.0):
         wp = PEG_WPS[name]
         print(f"  {name.upper()} peg")
 
-        # Approach with gripper open
+        # Approach
         ctrl.smooth_move(wp["approach"], 200)
-        for _ in range(30):
-            mujoco.mj_step(model, ctrl.data)
-            renderer.update_scene(ctrl.data, camera=cam)
-            writer.append_data(renderer.render())
-            frame_idx += 1
+        for _ in range(15):
+            mujoco.mj_step(model, ctrl.data); cf(); frame_idx += 1
 
-        # Close gripper
+        # Grasp
         ctrl.data.ctrl[7] = 60
-        for _ in range(40):
-            mujoco.mj_step(model, ctrl.data)
-            renderer.update_scene(ctrl.data, camera=cam)
-            writer.append_data(renderer.render())
-            frame_idx += 1
+        for _ in range(20):
+            mujoco.mj_step(model, ctrl.data); cf(); frame_idx += 1
 
         # Lift
         ctrl.smooth_move(wp["lift"], 200)
-        for _ in range(30):
-            mujoco.mj_step(model, ctrl.data)
-            renderer.update_scene(ctrl.data, camera=cam)
-            writer.append_data(renderer.render())
-            frame_idx += 1
+        for _ in range(15):
+            mujoco.mj_step(model, ctrl.data); cf(); frame_idx += 1
 
-        # Transport to hole
+        # Transport
         ctrl.smooth_move(wp["hole_above"], 250)
-        for _ in range(30):
+        for _ in range(15):
+            mujoco.mj_step(model, ctrl.data); cf(); frame_idx += 1
+
+        # Insert (lower gradually then release)
+        current = list(wp["hole_above"])
+        for dz in np.linspace(0, -0.08, 60):
+            current[2] = wp["hole_above"][2] + dz
+            for j in range(8):
+                ctrl.data.ctrl[j] = current[j]
             mujoco.mj_step(model, ctrl.data)
-            renderer.update_scene(ctrl.data, camera=cam)
-            writer.append_data(renderer.render())
+            if frame_idx % 3 == 0:
+                cf()
             frame_idx += 1
 
         # Release
         ctrl.data.ctrl[7] = 200
-        for _ in range(30):
-            mujoco.mj_step(model, ctrl.data)
-            renderer.update_scene(ctrl.data, camera=cam)
-            writer.append_data(renderer.render())
-            frame_idx += 1
+        for _ in range(15):
+            mujoco.mj_step(model, ctrl.data); cf(); frame_idx += 1
 
-        # Return home
-        ctrl.smooth_move(PEG_WPS[name]["insert"], 100)
-        ctrl.home(100)
-        for _ in range(20):
-            mujoco.mj_step(model, ctrl.data)
-            renderer.update_scene(ctrl.data, camera=cam)
-            writer.append_data(renderer.render())
-            frame_idx += 1
+        # Home
+        ctrl.smooth_move(HOME, 150)
+        for _ in range(10):
+            mujoco.mj_step(model, ctrl.data); cf(); frame_idx += 1
 
         pct = frame_idx / total_frames * 100
         sys.stdout.write(f"\r  {pct:.0f}%")
@@ -118,7 +115,7 @@ def main():
     ctrl = PandaAssemblyController(model, data)
 
     if args.benchmark:
-        results = ctrl.run_benchmark()
+        ctrl.run_benchmark()
     elif args.record:
         render_demo(model, ctrl, args.output)
     else:
