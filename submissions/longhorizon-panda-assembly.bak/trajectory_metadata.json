@@ -1,0 +1,11 @@
+{
+  "project": "Long-Horizon Panda Assembly",
+  "uuid": "ac553eae-aa22-4456-bb44-d05be92b06dc",
+  "robot": "Franka Emika Panda",
+  "task": "Multi-object pick-and-place assembly",
+  "num_objects": 4,
+  "phases_per_object": 7,
+  "total_phases": 29,
+  "duration_seconds": 15.0,
+  "fps": 30
+}

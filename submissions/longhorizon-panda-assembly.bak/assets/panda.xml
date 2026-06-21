@@ -208,7 +208,6 @@
                     <geom mesh="link7_7" material="white" class="visual"/>
                     <geom mesh="link7_c" class="collision"/>
                     <body name="hand" pos="0 0 0.107" quat="0.9238795 0 0 -0.3826834">
-      <site name="attachment_site" pos="0 0 0.03" size="0.005 0.005 0.005" type="sphere" group="4" rgba="1 1 0 0.5"/>
                       <inertial mass="0.73" pos="-0.01 0 0.03" diaginertia="0.001 0.0025 0.0017"/>
                       <geom mesh="hand_0" material="off_white" class="visual"/>
                       <geom mesh="hand_1" material="black" class="visual"/>
@@ -227,7 +226,6 @@
                         <geom class="fingertip_pad_collision_3"/>
                         <geom class="fingertip_pad_collision_4"/>
                         <geom class="fingertip_pad_collision_5"/>
-        <site name="left_finger_touch" pos="0 0.0055 0.0445" size="0.005 0.005 0.005" type="sphere" group="4" rgba="1 0 0 0.5"/>
                       </body>
                       <body name="right_finger" pos="0 0 0.0584" quat="0 0 0 1">
                         <inertial mass="0.015" pos="0 0 0" diaginertia="2.375e-6 2.375e-6 7.5e-7"/>
@@ -240,7 +238,6 @@
                         <geom class="fingertip_pad_collision_3"/>
                         <geom class="fingertip_pad_collision_4"/>
                         <geom class="fingertip_pad_collision_5"/>
-        <site name="right_finger_touch" pos="0 0.0055 0.0445" size="0.005 0.005 0.005" type="sphere" group="4" rgba="0 1 0 0.5"/>
                       </body>
                     </body>
                   </body>
