@@ -1,7 +1,7 @@
-<mujoco model="panda_precision_assembly_v3">
+<mujoco model="panda_demo">
   <include file="assets/panda.xml"/>
 
-  <statistic center="0.35 0 0.35" extent="1.0"/>
+  <statistic center="0.3 0 0.3" extent="0.8"/>
 
   <visual>
     <headlight diffuse="0.8 0.8 0.8" ambient="0.5 0.5 0.5" specular="0 0 0"/>
@@ -10,66 +10,57 @@
   </visual>
 
   <asset>
-    <texture type="skybox" builtin="gradient" rgb1="0.35 0.5 0.7" rgb2="0.05 0.05 0.1" width="512" height="3072"/>
+    <texture type="skybox" builtin="gradient" rgb1="0.3 0.5 0.7" rgb2="0 0 0" width="512" height="3072"/>
     <texture type="2d" name="groundplane" builtin="checker" mark="edge"
-      rgb1="0.22 0.28 0.32" rgb2="0.1 0.12 0.15" markrgb="0.5 0.5 0.5" width="300" height="300"/>
-    <material name="groundplane" texture="groundplane" texuniform="true" texrepeat="6 6" reflectance="0.1"/>
-    <material name="table_top" rgba="0.28 0.25 0.22 1" specular="0.3"/>
-    <material name="peg_brass" rgba="0.72 0.65 0.42 1" specular="0.8" shininess="0.6"/>
-    <material name="peg_steel" rgba="0.55 0.55 0.6 1" specular="0.7"/>
-    <material name="peg_red" rgba="0.85 0.15 0.12 1" specular="0.5"/>
-    <material name="peg_blue" rgba="0.12 0.15 0.85 1" specular="0.5"/>
-    <material name="hole_mat" rgba="0.05 0.05 0.08 1"/>
-    <material name="jig_mat" rgba="0.3 0.35 0.4 1" specular="0.5"/>
+      rgb1="0.2 0.3 0.4" rgb2="0.1 0.15 0.2" markrgb="0.7 0.7 0.7" width="300" height="300"/>
+    <material name="groundplane" texture="groundplane" texuniform="true" texrepeat="5 5" reflectance="0.1"/>
+    <material name="table" rgba="0.25 0.22 0.2 1" specular="0.3"/>
+    <material name="red" rgba="0.9 0.1 0.1 1"/>
+    <material name="green" rgba="0.1 0.9 0.1 1"/>
+    <material name="blue" rgba="0.1 0.1 0.9 1"/>
+    <material name="yellow" rgba="0.9 0.9 0.1 1"/>
   </asset>
 
   <worldbody>
-    <light pos="1.5 1.5 2.5" dir="-0.5 -0.5 -1" directional="true" diffuse="0.5 0.5 0.5"/>
-    <light pos="-0.5 1.5 2" dir="0.5 -0.5 -1" directional="true" diffuse="0.3 0.3 0.3"/>
+    <light pos="1 1 2" dir="-0.5 -0.5 -1" directional="true" diffuse="0.5 0.5 0.5"/>
+    <light pos="-0.5 1 1.5" dir="0.5 -0.5 -1" directional="true" diffuse="0.3 0.3 0.3"/>
     <geom name="floor" size="0 0 0.05" type="plane" material="groundplane"/>
 
-    <!-- Simple table -->
-    <body name="table" pos="0.45 0 0">
-      <geom name="table_top" type="box" size="0.25 0.2 0.02" pos="0 0 0.07" material="table_top"/>
+    <!-- Table -->
+    <body name="table" pos="0.4 0 0">
+      <geom name="table_top" type="box" size="0.25 0.2 0.025" pos="0 0 0.075" material="table"/>
     </body>
 
-    <!-- === PEGS (within easy reach of Panda) === -->
-    <body name="peg_brass" pos="0.40 0.14 0.115">
+    <!-- 4 colored objects on table -->
+    <body name="obj_red" pos="0.40 0.12 0.105">
       <freejoint/>
-      <geom type="cylinder" size="0.012 0.03" material="peg_brass"/>
+      <geom type="box" size="0.025 0.025 0.025" material="red"/>
     </body>
-    <body name="peg_steel" pos="0.50 0.14 0.115">
+    <body name="obj_green" pos="0.50 0.12 0.105">
       <freejoint/>
-      <geom type="box" size="0.012 0.012 0.03" material="peg_steel"/>
+      <geom type="cylinder" size="0.025 0.025" material="green"/>
     </body>
-    <body name="peg_red" pos="0.40 -0.14 0.105">
+    <body name="obj_blue" pos="0.40 -0.12 0.105">
       <freejoint/>
-      <geom type="cylinder" size="0.008 0.025" material="peg_red"/>
+      <geom type="sphere" size="0.025" material="blue"/>
     </body>
-    <body name="peg_blue" pos="0.50 -0.14 0.105">
+    <body name="obj_yellow" pos="0.50 -0.12 0.105">
       <freejoint/>
-      <geom type="box" size="0.008 0.008 0.025" material="peg_blue"/>
+      <geom type="box" size="0.025 0.025 0.025" material="yellow"/>
     </body>
 
-    <!-- Assembly jig with holes, centered closer to arm -->
-    <body name="jig" pos="0.30 0 0.09">
-      <geom name="jig_base" type="box" size="0.12 0.12 0.01" material="jig_mat"/>
-      <body name="hole_brass" pos="-0.05 0.05 0"><geom type="cylinder" size="0.014 0.015" material="hole_mat"/></body>
-      <body name="hole_steel" pos="0.05 0.05 0"><geom type="box" size="0.014 0.014 0.015" material="hole_mat"/></body>
-      <body name="hole_red" pos="-0.05 -0.05 0"><geom type="cylinder" size="0.01 0.015" material="hole_mat"/></body>
-      <body name="hole_blue" pos="0.05 -0.05 0"><geom type="box" size="0.01 0.01 0.015" material="hole_mat"/></body>
+    <!-- Target zones -->
+    <body name="target_red" pos="0.28 0.16 0.01">
+      <geom type="box" size="0.04 0.04 0.005" rgba="0.9 0.1 0.1 0.2"/>
+    </body>
+    <body name="target_green" pos="0.28 -0.16 0.01">
+      <geom type="box" size="0.04 0.04 0.005" rgba="0.1 0.9 0.1 0.2"/>
+    </body>
+    <body name="target_blue" pos="0.52 0.16 0.01">
+      <geom type="box" size="0.04 0.04 0.005" rgba="0.1 0.1 0.9 0.2"/>
+    </body>
+    <body name="target_yellow" pos="0.52 -0.16 0.01">
+      <geom type="box" size="0.04 0.04 0.005" rgba="0.9 0.9 0.1 0.2"/>
     </body>
   </worldbody>
-
-  <sensor>
-    <touch name="left_ft" site="left_finger_touch"/>
-    <touch name="right_ft" site="right_finger_touch"/>
-    <jointpos name="j1p" joint="joint1"/>
-    <jointpos name="j2p" joint="joint2"/>
-    <jointpos name="j3p" joint="joint3"/>
-    <jointpos name="j4p" joint="joint4"/>
-    <jointpos name="j5p" joint="joint5"/>
-    <jointpos name="j6p" joint="joint6"/>
-    <jointpos name="j7p" joint="joint7"/>
-  </sensor>
 </mujoco>
